@@ -1,15 +1,16 @@
 <?php
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname  = "REDACTED_DB";
+/**
+ * Edit User (CRM Admin)
+ * Allows admin to update user details.
+ * Requires admin authentication and CSRF protection.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/db_connect.php';
 
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+requireCrmAdmin();
 
-$user_id = $_GET['id'] ?? null;
+$user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 if (!$user_id) {
     die("User ID not provided.");
@@ -17,16 +18,32 @@ if (!$user_id) {
 
 // Update logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $conn->real_escape_string($_POST['username']);
-    $email = $conn->real_escape_string($_POST['email']);
-    $role = $conn->real_escape_string($_POST['role']);
+    validateCsrfToken();
+    
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $role = trim($_POST['role'] ?? '');
+    
+    // Validate role against whitelist
+    $valid_roles = ['admin', 'employee', 'user'];
+    if (!in_array($role, $valid_roles, true)) {
+        die("Invalid role.");
+    }
+    
+    if (empty($username) || empty($email)) {
+        die("Username and email are required.");
+    }
+    
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        die("Invalid email format.");
+    }
 
     $stmt = $conn->prepare("UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?");
     $stmt->bind_param("sssi", $username, $email, $role, $user_id);
     $stmt->execute();
     $stmt->close();
 
-    header("Location: authentication-total.php"); // redirect to users list
+    header("Location: authentication-total.php");
     exit();
 }
 
@@ -54,6 +71,7 @@ if (!$user) {
     <h2>Edit Employee</h2>
 
     <form method="POST">
+        <?= csrfField() ?>
         <div class="mb-3">
             <label>Username</label>
             <input type="text" name="username" class="form-control" value="<?= htmlspecialchars($user['username']) ?>" required>

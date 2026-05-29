@@ -1,39 +1,47 @@
-function create_custom_products_full_table() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'custom_products_full';
+<?php
+/**
+ * Shared Utility Functions
+ * 
+ * Note: The previous WordPress-specific code ($wpdb, dbDelta, add_action)
+ * has been removed as this is a vanilla PHP application, not WordPress.
+ */
 
-    $charset_collate = $wpdb->get_charset_collate();
-
-    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
-        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-        post_id BIGINT(20) UNSIGNED NOT NULL UNIQUE,
-        post_author BIGINT(20),
-        post_date DATETIME,
-        post_date_gmt DATETIME,
-        post_content LONGTEXT,
-        post_title TEXT,
-        post_excerpt TEXT,
-        post_status VARCHAR(20),
-        comment_status VARCHAR(20),
-        ping_status VARCHAR(20),
-        post_password VARCHAR(255),
-        post_name VARCHAR(200),
-        to_ping TEXT,
-        pinged TEXT,
-        post_modified DATETIME,
-        post_modified_gmt DATETIME,
-        post_content_filtered TEXT,
-        post_parent BIGINT(20),
-        guid VARCHAR(255),
-        menu_order INT,
-        post_type VARCHAR(20),
-        post_mime_type VARCHAR(100),
-        comment_count BIGINT(20),
-        meta_data LONGTEXT,
-        PRIMARY KEY (id)
-    ) $charset_collate;";
-
-    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-    dbDelta($sql);
+/**
+ * Sanitize a string for safe display.
+ * @param string $input
+ * @return string
+ */
+function sanitize(string $input): string {
+    return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
 }
-add_action('after_setup_theme', 'create_custom_products_full_table');
+
+/**
+ * Format a price value.
+ * @param float $price
+ * @return string
+ */
+function formatPrice(float $price): string {
+    return '$' . number_format($price, 2);
+}
+
+/**
+ * Validate an uploaded image file.
+ * @param array $file The $_FILES entry
+ * @return array ['valid' => bool, 'error' => string]
+ */
+function validateImageUpload(array $file): array {
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        return ['valid' => false, 'error' => 'Upload failed'];
+    }
+    
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, ALLOWED_IMAGE_TYPES)) {
+        return ['valid' => false, 'error' => 'Invalid image format. Allowed: ' . implode(', ', ALLOWED_IMAGE_TYPES)];
+    }
+    
+    if ($file['size'] > UPLOAD_MAX_SIZE) {
+        return ['valid' => false, 'error' => 'File too large. Maximum size: ' . (UPLOAD_MAX_SIZE / 1024 / 1024) . 'MB'];
+    }
+    
+    return ['valid' => true, 'error' => ''];
+}

@@ -1,13 +1,6 @@
 <?php
-// Docker MySQL Configuration
-$servername = "mysql";              // Docker service name
-$username = "root";                 // MySQL root user
-$password = "REDACTED";              // MySQL root password
-$database = "REDACTED_DB";    // Database name
-
-$conn = mysqli_connect($servername, $username, $password, $database);
-
-if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
-}
-?>
+/**
+ * Database Connection (Legacy wrapper)
+ * Uses the centralized config. Kept for backward compatibility with existing includes.
+ */
+require_once __DIR__ . '/includes/db_connect.php';

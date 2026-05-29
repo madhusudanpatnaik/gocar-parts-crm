@@ -1,21 +1,14 @@
 <?php
+/**
+ * Product List API (Cached)
+ * Returns a set of random products, cached for performance.
+ */
+require_once __DIR__ . '/includes/db_connect.php';
+
 ini_set('display_errors', 0);
 error_reporting(0);
 
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname = "REDACTED_DB";
-
 $cacheFile = __DIR__ . '/product_cache_engines.json';
-
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    header('Content-Type: application/json');
-    http_response_code(500);
-    echo json_encode(['error' => 'Connection failed']);
-    exit;
-}
 
 // Load cached IDs if valid
 $cachedIds = [];
@@ -26,20 +19,13 @@ if (file_exists($cacheFile)) {
     }
 }
 
-// If no valid cache or cache expired, fetch random product IDs
+// If no valid cache, fetch random product IDs
 if (empty($cachedIds)) {
-    // Fetch 8 random products from "Engine" category or any category with price > 0
-    $idQuery = "
-        SELECT id FROM products 
-        WHERE price > 0
-        ORDER BY RAND()
-        LIMIT 8
-    ";
-
+    $idQuery = "SELECT id FROM products WHERE price > 0 ORDER BY RAND() LIMIT 8";
     $idResult = $conn->query($idQuery);
     if ($idResult && $idResult->num_rows > 0) {
         while ($row = $idResult->fetch_assoc()) {
-            $cachedIds[] = $row['id'];
+            $cachedIds[] = (int)$row['id'];
         }
         if (count($cachedIds) > 0) {
             @file_put_contents($cacheFile, json_encode($cachedIds));
@@ -50,21 +36,12 @@ if (empty($cachedIds)) {
 $data = [];
 
 if (!empty($cachedIds)) {
+    // Safely build IN clause with intval
     $ids = implode(',', array_map('intval', $cachedIds));
     
-    $query = "
-        SELECT 
-            id,
-            name,
-            price,
-            category,
-            image_url
-        FROM products 
-        WHERE id IN ($ids)
-        ORDER BY FIELD(id, $ids)
-    ";
-
+    $query = "SELECT id, name, price, category, image_url FROM products WHERE id IN ($ids) ORDER BY FIELD(id, $ids)";
     $result = $conn->query($query);
+    
     if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
             $data[] = [

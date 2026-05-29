@@ -1,19 +1,17 @@
 <?php
+/**
+ * Add Product (Admin API)
+ * Adds a new product to the catalog.
+ * Requires admin authentication.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
+
+requireCrmAdminApi();
+
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 error_reporting(0);
-
-// Database connection
-$host = "mysql";
-$user = "root";
-$pass = "REDACTED";
-$dbname = "REDACTED_DB";
-$conn = new mysqli($host, $user, $pass, $dbname);
-if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'DB connection failed: ' . $conn->connect_error]);
-    exit;
-}
 
 // Get form data
 $name = isset($_POST['name']) ? trim($_POST['name']) : '';
@@ -43,6 +41,13 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         exit;
     }
 
+    // Check file size (5MB max)
+    if ($_FILES['image']['size'] > 5 * 1024 * 1024) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Image file too large (max 5MB)']);
+        exit;
+    }
+
     $filename = time() . '_' . bin2hex(random_bytes(4)) . '.' . $file_ext;
     $targetPath = $uploadDir . $filename;
 
@@ -51,18 +56,19 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     }
 }
 
-// Insert product into products table
+// Insert product
 $stmt = $conn->prepare("INSERT INTO products (name, price, category, image_url) VALUES (?, ?, ?, ?)");
 if (!$stmt) {
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Query preparation failed: ' . $conn->error]);
+    echo json_encode(['status' => 'error', 'message' => 'Query preparation failed']);
     exit;
 }
 
 $stmt->bind_param("sdss", $name, $price, $category, $image_url);
 if (!$stmt->execute()) {
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Insert failed: ' . $stmt->error]);
+    error_log("Product insert failed: " . $stmt->error);
+    echo json_encode(['status' => 'error', 'message' => 'Insert failed']);
     exit;
 }
 

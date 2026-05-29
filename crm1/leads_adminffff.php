@@ -1,14 +1,11 @@
 <?php
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname  = "REDACTED_DB";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+require_once __DIR__ . '/../gocarparts-main/includes/config.php';
 session_start();
+
+$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+if ($conn->connect_error) {
+  die("Connection failed: " . $conn->connect_error);
+}
 
 // Check if user is logged in as employee
 

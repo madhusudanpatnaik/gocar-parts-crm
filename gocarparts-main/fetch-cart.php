@@ -1,24 +1,17 @@
 <?php
-session_start();
+/**
+ * Fetch Cart API
+ * Provides fetch, update, and delete operations for cart items.
+ * Requires user authentication.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
+
+requireLoginApi();
+
 header('Content-Type: application/json');
 
-// Check login
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(["error" => "User not logged in"]);
-    exit;
-}
-
-$user_id = $_SESSION['user_id'];
-
-// DB connection
-$conn = new mysqli("mysql", "root", "REDACTED", "REDACTED_DB");
-if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode(["error" => "Database connection failed"]);
-    exit;
-}
-
+$user_id = getUserId();
 $action = $_GET['action'] ?? 'fetch';
 
 switch ($action) {
@@ -51,8 +44,8 @@ switch ($action) {
         break;
 
     case 'update':
-        $cart_id = $_POST['cart_id'] ?? null;
-        $quantity = $_POST['quantity'] ?? null;
+        $cart_id = isset($_POST['cart_id']) ? intval($_POST['cart_id']) : 0;
+        $quantity = isset($_POST['quantity']) ? intval($_POST['quantity']) : 0;
 
         if (!$cart_id || !$quantity || $quantity < 1) {
             http_response_code(400);
@@ -72,7 +65,7 @@ switch ($action) {
         break;
 
     case 'delete':
-        $cart_id = $_POST['cart_id'] ?? null;
+        $cart_id = isset($_POST['cart_id']) ? intval($_POST['cart_id']) : 0;
 
         if (!$cart_id) {
             http_response_code(400);

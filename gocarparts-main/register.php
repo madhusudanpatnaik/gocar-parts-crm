@@ -1,64 +1,82 @@
 <?php
-session_start();
+/**
+ * User Registration Handler
+ * Registers new users with proper validation and prepared statements.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
 
-// Only run this if form is submitted using POST
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $username = $_POST['username'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $confirm = $_POST['confirm_password'] ?? '';
+ensureSession();
 
-    // Check if fields are filled
-   if (!$username || !$email || !$password || !$confirm) {
+// Only process POST requests
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    header("Location: loginpage.php?error=" . urlencode("Invalid request."));
+    exit;
+}
+
+$username = trim($_POST['username'] ?? '');
+$email = trim($_POST['email'] ?? '');
+$password = $_POST['password'] ?? '';
+$confirm = $_POST['confirm_password'] ?? '';
+
+// Validate required fields
+if (!$username || !$email || !$password || !$confirm) {
     header("Location: loginpage.php?error=" . urlencode("Please fill in all fields.") . "&source=register");
     exit;
 }
 
-
-    // Check if passwords match
-    if ($password !== $confirm) {
-        header("Location: loginpage.php?error=" . urlencode("Passwords do not match."). "&source=register");
-        exit;
-    }
-
-    // DB connection - Docker MySQL
-    $conn = new mysqli("mysql", "root", "REDACTED", "REDACTED_DB");
-    if ($conn->connect_error) {
-        header("Location: loginpage.php?error=" . urlencode("Database connection failed."));
-        exit;
-    }
-
-    // Check if email already exists
-    $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $stmt->store_result();
-
-    if ($stmt->num_rows > 0) {
-        $stmt->close();
-        $conn->close();
-        header("Location: loginpage.php?error=" . urlencode("Email already registered."). "&source=register");
-        exit;
-    }
-
-    // Insert new user
-    $stmt->close();
-    $hashed = password_hash($password, PASSWORD_DEFAULT);
-    $stmt = $conn->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-    $stmt->bind_param("sss", $username, $email, $hashed);
-
-    if ($stmt->execute()) {
-        header("Location: loginpage.php?success=" . urlencode("Registration successful. Please log in."). "&source=register");
-        exit;
-    } else {
-        header("Location: loginpage.php?error=" . urlencode("Error during registration. Please try again."). "&source=register");
-        exit;
-    }
-
-    $stmt->close();
-    $conn->close();
-} else {
-    header("Location: loginpage.php?error=" . urlencode("Invalid request."));
+// Validate email format
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    header("Location: loginpage.php?error=" . urlencode("Please enter a valid email address.") . "&source=register");
     exit;
 }
+
+// Validate password strength
+if (strlen($password) < 8) {
+    header("Location: loginpage.php?error=" . urlencode("Password must be at least 8 characters long.") . "&source=register");
+    exit;
+}
+
+// Check if passwords match
+if ($password !== $confirm) {
+    header("Location: loginpage.php?error=" . urlencode("Passwords do not match.") . "&source=register");
+    exit;
+}
+
+// Validate username length
+if (strlen($username) < 3 || strlen($username) > 50) {
+    header("Location: loginpage.php?error=" . urlencode("Username must be between 3 and 50 characters.") . "&source=register");
+    exit;
+}
+
+// Check if email already exists
+$stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$stmt->store_result();
+
+if ($stmt->num_rows > 0) {
+    $stmt->close();
+    $conn->close();
+    header("Location: loginpage.php?error=" . urlencode("Email already registered.") . "&source=register");
+    exit;
+}
+$stmt->close();
+
+// Insert new user with hashed password
+$hashed = password_hash($password, PASSWORD_DEFAULT);
+$stmt = $conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'user')");
+$stmt->bind_param("sss", $username, $email, $hashed);
+
+if ($stmt->execute()) {
+    header("Location: loginpage.php?success=" . urlencode("Registration successful. Please log in.") . "&source=register");
+    exit;
+} else {
+    error_log("Registration failed: " . $stmt->error);
+    header("Location: loginpage.php?error=" . urlencode("Error during registration. Please try again.") . "&source=register");
+    exit;
+}
+
+$stmt->close();
+$conn->close();
 ?>

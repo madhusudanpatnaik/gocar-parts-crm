@@ -1,21 +1,9 @@
 <?php
-session_start();
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'employee') {
-    header("Location: loginpage.php?error=" . urlencode("Unauthorized access."));
-    exit;
-}
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
+
+requireEmployee();
 $username = htmlspecialchars($_SESSION['username'] ?? 'Employee');
-
-// DB
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname = "REDACTED_DB";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
 
 // Get range
 $range = $_GET['range'] ?? 'all';

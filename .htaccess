@@ -1,3 +1,4 @@
+# Handle .php and .PHP extensions
 <IfModule mod_php7.c>
     AddType application/x-httpd-php .php .PHP
     AddHandler application/x-httpd-php .php .PHP
@@ -9,3 +10,46 @@
 <IfModule mod_mime.c>
     AddType application/x-httpd-php .php .PHP
 </IfModule>
+
+# Block access to sensitive files and directories
+<FilesMatch "\.(sql|md|yml|yaml|env|json|lock|git|zip)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Block access to .git directory
+RedirectMatch 404 /\.git
+
+# Block access to database directory
+RedirectMatch 404 /database/
+
+# Block access to Dockerfile and docker-compose
+<Files "Dockerfile">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</Files>
+<Files "docker-compose.yml">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</Files>
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Prevent server signature
+ServerSignature Off

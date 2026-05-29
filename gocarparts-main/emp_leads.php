@@ -1,19 +1,15 @@
 <?php
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname  = "REDACTED_DB";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+require_once __DIR__ . '/includes/config.php';
 session_start();
 
 // Check if user is logged in as employee
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'employee') {
-    header("Location: login.php");
-    exit;
+  header("Location: login.php");
+  exit;
+}
+$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+if ($conn->connect_error) {
+  die("Connection failed: " . $conn->connect_error);
 }
 $username = htmlspecialchars($_SESSION['username'] ?? 'Employee');
 

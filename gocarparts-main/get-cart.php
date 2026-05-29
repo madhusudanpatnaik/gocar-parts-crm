@@ -1,34 +1,31 @@
 <?php
-session_start();
+/**
+ * Get Cart Items
+ * Returns cart items joined with product data.
+ * Requires user authentication.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
 
-// ✅ Make sure user is logged in
-if (!isset($_SESSION['user_id'])) {
+header('Content-Type: application/json');
+
+if (!isLoggedIn()) {
+    http_response_code(401);
     echo json_encode(["error" => "User not logged in"]);
     exit;
 }
 
-$userId = $_SESSION['user_id'];
+$userId = getUserId();
 
-$host = "mysql"; // or your actual host
-$username = "root";
-$password = "REDACTED";
-$database = "REDACTED_DB";
-
-$conn = new mysqli($host, $username, $password, $database);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// ✅ Join cart and products tables
+// Join cart and products tables — using image_url to match actual schema
 $sql = "SELECT 
             c.quantity,
             p.name,
             p.price,
-            p.image
+            p.image_url AS image
         FROM cart c
         INNER JOIN products p ON c.product_id = p.id
         WHERE c.user_id = ?";
-
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
@@ -42,4 +39,7 @@ while ($row = $result->fetch_assoc()) {
 }
 
 echo json_encode($cartItems);
+
+$stmt->close();
+$conn->close();
 ?>

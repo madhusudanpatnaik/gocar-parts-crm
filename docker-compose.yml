@@ -11,20 +11,34 @@ services:
       - .:/var/www/html
     environment:
       MYSQL_HOST: mysql
-      MYSQL_USER: root
-      MYSQL_PASSWORD: REDACTED
+      MYSQL_USER: gocar_app
+      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:-REDACTED}
       MYSQL_DATABASE: REDACTED_DB
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-REDACTED_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-REDACTED}
+      APP_ENV: ${APP_ENV:-development}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@gocarparts.com}
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - gocar-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   mysql:
     image: mysql:8.0
     container_name: gocar-db
     environment:
-      MYSQL_ROOT_PASSWORD: REDACTED
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-REDACTED}
       MYSQL_DATABASE: REDACTED_DB
+      MYSQL_USER: gocar_app
+      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:-REDACTED}
     ports:
       - "3306:3306"
     volumes:
@@ -32,6 +46,12 @@ services:
       - ./database:/docker-entrypoint-initdb.d
     networks:
       - gocar-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   mysql_data:

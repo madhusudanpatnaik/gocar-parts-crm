@@ -1,47 +1,57 @@
 <?php
-session_start();
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: loginpage.php?error=" . urlencode("Unauthorized access."));
-    exit;
-}
+/**
+ * Manage Employees
+ * Admin page for adding, viewing, and deleting employee accounts.
+ * Requires admin authentication and CSRF protection.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/db_connect.php';
 
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname  = "REDACTED_DB";
+requireAdmin();
 
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// Handle deletion
-if (isset($_GET['delete'])) {
-    $deleteId = $_GET['delete'];
-    $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
-    $stmt->bind_param("i", $deleteId);
-    $stmt->execute();
+// Handle deletion via POST (not GET)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    validateCsrfToken();
+    $deleteId = intval($_POST['delete_id']);
+    if ($deleteId > 0) {
+        $stmt = $conn->prepare("DELETE FROM users WHERE id = ? AND role = 'employee'");
+        $stmt->bind_param("i", $deleteId);
+        $stmt->execute();
+        $stmt->close();
+    }
     header("Location: manage_employees.php");
     exit;
 }
 
-// Handle add employee
+// Handle add employee via POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
-    $username = $_POST['username'];
-    $email = $_POST['email'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-    $role = $_POST['role'];
+    validateCsrfToken();
+    
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $raw_password = $_POST['password'] ?? '';
+    
+    if (!empty($username) && !empty($email) && !empty($raw_password)) {
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) && strlen($raw_password) >= 8) {
+            $hashed_password = password_hash($raw_password, PASSWORD_DEFAULT);
+            // Role is always 'employee' — hardcoded to prevent privilege escalation
+            $role = 'employee';
 
-    $stmt = $conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("ssss", $username, $email, $password, $role);
-    $stmt->execute();
+            $stmt = $conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $username, $email, $hashed_password, $role);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
     header("Location: manage_employees.php");
     exit;
 }
-
 
 // Fetch employees
 $result = $conn->query("SELECT id, username, email, role FROM users WHERE role = 'employee'");
+
+$csrfToken = generateCsrfToken();
 ?>
 
 <!DOCTYPE html>
@@ -50,7 +60,6 @@ $result = $conn->query("SELECT id, username, email, role FROM users WHERE role =
   <meta charset="UTF-8">
   <title>Manage Employees</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="admin_style.css">
 </head>
 <body>
 <div class="sidebar">
@@ -68,21 +77,20 @@ $result = $conn->query("SELECT id, username, email, role FROM users WHERE role =
 
     <!-- Add Employee Form -->
     <form method="POST" class="row g-3 mb-3">
+      <?= csrfField() ?>
       <div class="col-md-3">
-        <input type="text" name="username" class="form-control" placeholder="Username" required>
+        <input type="text" name="username" class="form-control" placeholder="Username" required minlength="3">
       </div>
        <div class="col-md-3">
-    <input type="email" name="email" class="form-control" placeholder="Email" required>
-  </div>
-      <div class="col-md-3">
-        <input type="password" name="password" class="form-control" placeholder="Password" required>
+        <input type="email" name="email" class="form-control" placeholder="Email" required>
       </div>
       <div class="col-md-3">
-        <select name="role" class="form-select" required>
-          <option value="employee">Employee</option>
-        </select>
+        <input type="password" name="password" class="form-control" placeholder="Password (min 8 chars)" required minlength="8">
       </div>
-      <div class="col-md-1"  >
+      <div class="col-md-2">
+        <span class="form-control-plaintext">Role: Employee</span>
+      </div>
+      <div class="col-md-1">
         <button type="submit" name="add" class="btn btn-primary w-100">Add</button>
       </div>
     </form>
@@ -101,14 +109,17 @@ $result = $conn->query("SELECT id, username, email, role FROM users WHERE role =
       <tbody>
         <?php while($row = $result->fetch_assoc()): ?>
           <tr>
-            <td><?= $row['id'] ?></td>
+            <td><?= intval($row['id']) ?></td>
             <td><?= htmlspecialchars($row['username']) ?></td>
             <td><?= htmlspecialchars($row['email']) ?></td>
-            <td><?= $row['role'] ?></td>
+            <td><?= htmlspecialchars($row['role']) ?></td>
             <td>
-              <a href="edit_employee.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-warning">Edit</a>
-              <a href="manage_employees.php?delete=<?= $row['id'] ?>" class="btn btn-sm btn-danger"
-                 onclick="return confirm('Are you sure you want to delete this employee?');">Delete</a>
+              <a href="edit_employee.php?id=<?= intval($row['id']) ?>" class="btn btn-sm btn-warning">Edit</a>
+              <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this employee?');">
+                <?= csrfField() ?>
+                <input type="hidden" name="delete_id" value="<?= intval($row['id']) ?>">
+                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+              </form>
             </td>
           </tr>
         <?php endwhile; ?>

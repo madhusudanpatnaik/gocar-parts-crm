@@ -1,24 +1,11 @@
 <?php
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname = "REDACTED_DB";
+/**
+ * Get Vehicle Data API
+ * Returns product data parsed for vehicle make/model/year dropdowns.
+ */
+require_once __DIR__ . '/includes/db_connect.php';
 
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-$sql = "
-    SELECT 
-        p.id,
-        p.name,
-        p.price,
-        p.category,
-        p.image_url AS img
-    FROM products p
-";
-
+$sql = "SELECT id, name, price, category, image_url AS img FROM products";
 $result = $conn->query($sql);
 $data = [];
 
@@ -51,7 +38,6 @@ if ($result && $result->num_rows > 0) {
                 $make = strtoupper($parts[0]);
                 $model = strtoupper($parts[1]);
             }
-            // Extract any years
             if (preg_match_all('/\b(19|20)\d{2}\b/', $title, $yearMatches)) {
                 $years = array_map('intval', $yearMatches[0]);
             }
@@ -60,14 +46,13 @@ if ($result && $result->num_rows > 0) {
         $years = array_unique($years);
         sort($years);
 
-        // If no years found, use a default
         if (empty($years)) {
-            $years = [date('Y')];
+            $years = [(int)date('Y')];
         }
 
         foreach ($years as $year) {
             $entry = [
-                'id' => $row['id'],
+                'id' => (int)$row['id'],
                 'title' => $title,
                 'price' => $row['price'],
                 'sku' => 'N/A',
@@ -85,6 +70,5 @@ if ($result && $result->num_rows > 0) {
 
 header('Content-Type: application/json');
 echo json_encode($data, JSON_PRETTY_PRINT);
-
 $conn->close();
 ?>

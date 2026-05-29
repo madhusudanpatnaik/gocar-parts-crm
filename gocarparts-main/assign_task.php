@@ -1,22 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
 
-// Check if user is an employee
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'employee') {
-    header("Location: login.php");
-    exit;
-}
-
-// Database connection
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname  = "REDACTED_DB";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+requireEmployee();
 
 $employee_id = $_SESSION['user_id'];
 $page = isset($_SESSION['current_page']) ? (int)$_SESSION['current_page'] : 1;

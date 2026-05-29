@@ -1,19 +1,17 @@
 <?php
+/**
+ * Edit Product (Admin API)
+ * Fetch or update a product.
+ * Requires admin authentication.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
+
+requireCrmAdminApi();
+
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 error_reporting(0);
-
-$host = "mysql";
-$user = "root";
-$pass = "REDACTED";
-$dbname = "REDACTED_DB";
-
-$conn = new mysqli($host, $user, $pass, $dbname);
-if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'DB connection failed']);
-    exit;
-}
 
 // GET - Fetch product data
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
@@ -22,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     $stmt = $conn->prepare("SELECT id, name, price, category, image_url FROM products WHERE id = ?");
     if (!$stmt) {
         http_response_code(500);
-        echo json_encode(['status' => 'error', 'message' => 'Query failed: ' . $conn->error]);
+        echo json_encode(['status' => 'error', 'message' => 'Query failed']);
         exit;
     }
     
@@ -72,6 +70,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['status' => 'error', 'message' => 'Invalid image format']);
             exit;
         }
+
+        if ($_FILES['image']['size'] > 5 * 1024 * 1024) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Image file too large (max 5MB)']);
+            exit;
+        }
         
         $filename = time() . '_' . bin2hex(random_bytes(4)) . '.' . $file_ext;
         $targetPath = $uploadDir . $filename;
@@ -86,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("UPDATE products SET name = ?, price = ?, category = ?, image_url = ? WHERE id = ?");
         if (!$stmt) {
             http_response_code(500);
-            echo json_encode(['status' => 'error', 'message' => 'Query failed: ' . $conn->error]);
+            echo json_encode(['status' => 'error', 'message' => 'Query failed']);
             exit;
         }
         $stmt->bind_param("sdssi", $name, $price, $category, $image_url, $id);
@@ -94,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("UPDATE products SET name = ?, price = ?, category = ? WHERE id = ?");
         if (!$stmt) {
             http_response_code(500);
-            echo json_encode(['status' => 'error', 'message' => 'Query failed: ' . $conn->error]);
+            echo json_encode(['status' => 'error', 'message' => 'Query failed']);
             exit;
         }
         $stmt->bind_param("sdsi", $name, $price, $category, $id);
@@ -102,7 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (!$stmt->execute()) {
         http_response_code(500);
-        echo json_encode(['status' => 'error', 'message' => 'Update failed: ' . $stmt->error]);
+        error_log("Product update failed: " . $stmt->error);
+        echo json_encode(['status' => 'error', 'message' => 'Update failed']);
         exit;
     }
     

@@ -1,46 +1,49 @@
 <?php
-// Database connection
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname  = "REDACTED_DB";
+/**
+ * Payment / Lead Details (CRM Admin)
+ * Displays details for a specific order, price, mileage, or quote request.
+ * Requires admin authentication. Uses prepared statements.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
 
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+requireCrmAdmin();
 
 // Validate parameters
-$type = isset($_GET['type']) ? $_GET['type'] : '';
+$type = isset($_GET['type']) ? trim($_GET['type']) : '';
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 if (empty($type) || $id === 0) {
     die("Invalid request");
 }
 
-// Determine the table based on type
-$table = '';
-if ($type === 'order') {
-    $table = 'order_items';
-} elseif ($type === 'price') {
-    $table = 'price_requests';
-} elseif ($type === 'mileage') {
-    $table = 'mileage_requests';
-} elseif ($type === 'request_quote') {
-    $table = 'quote_requests';
-} else {
+// Whitelist table mapping — never use user input directly as table name
+$table_map = [
+    'order' => 'order_items',
+    'price' => 'price_requests',
+    'mileage' => 'mileage_requests',
+    'request_quote' => 'quote_requests'
+];
+
+if (!isset($table_map[$type])) {
     die("Invalid type");
 }
 
-// Fetch record from the selected table
-$sql = "SELECT * FROM $table WHERE id = $id";
-$result = $conn->query($sql);
+$table = $table_map[$type];
+
+// Use prepared statement
+$stmt = $conn->prepare("SELECT * FROM $table WHERE id = ?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$result = $stmt->get_result();
 
 if (!$result || $result->num_rows === 0) {
     die("Record not found");
 }
 
 $data = $result->fetch_assoc();
+$stmt->close();
+$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -56,18 +59,18 @@ $data = $result->fetch_assoc();
     <div class="card shadow">
         <!-- Header -->
         <div class="card-header bg-primary text-white text-center text-md-start">
-            <h5 class="mb-0">Details for <?= ucfirst($type) ?> ID: <?= $id ?></h5>
+            <h5 class="mb-0">Details for <?= htmlspecialchars(ucfirst($type)) ?> ID: <?= $id ?></h5>
         </div>
 
         <!-- Table -->
         <div class="card-body">
-            <div class="table-responsive"> <!-- ✅ Makes table scrollable on mobile -->
+            <div class="table-responsive">
                 <table class="table table-bordered table-striped align-middle">
                     <tbody>
                         <?php foreach ($data as $key => $value): ?>
                             <tr>
-                                <th class="text-nowrap"><?= ucfirst(str_replace('_', ' ', $key)) ?></th>
-                                <td><?= htmlspecialchars($value) ?></td>
+                                <th class="text-nowrap"><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $key))) ?></th>
+                                <td><?= htmlspecialchars($value ?? '') ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

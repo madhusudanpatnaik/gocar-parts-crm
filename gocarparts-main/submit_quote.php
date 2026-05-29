@@ -1,77 +1,50 @@
 <?php
-// $host = "mysql";
-// $user = "root";
-// $password = "REDACTED";
-// $dbname = "REDACTED_DB";
+/**
+ * Submit Quote Request
+ * Saves a custom quote request using prepared statements.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
 
-// $conn = new mysqli($host, $user, $password, $dbname);
-// if ($conn->connect_error) {
-//     die("Connection failed: " . $conn->connect_error);
-// }
-
-// $name = $conn->real_escape_string($_POST['name']);
-// $email = $conn->real_escape_string($_POST['email']);
-// $contact_number = $conn->real_escape_string($_POST['contact_number']);
-// $zipcode = $conn->real_escape_string($_POST['zipcode']);
-// $notes = $conn->real_escape_string($_POST['notes']);
-
-
-// $make = isset($_POST['make']) ? $conn->real_escape_string($_POST['make']) : '';
-// $model = isset($_POST['model']) ? $conn->real_escape_string($_POST['model']) : '';
-// $category = isset($_POST['category']) ? $conn->real_escape_string($_POST['category']) : '';
-// $year = isset($_POST['year']) ? $conn->real_escape_string($_POST['year']) : '';
-// $submodel = isset($_POST['submodel']) ? $conn->real_escape_string($_POST['submodel']) : '';
-
-// $sql = "INSERT INTO quote_requests (name, email, contact_number, zipcode, notes, make, model, category, year, submodel)
-//         VALUES ('$name', '$email', '$contact_number', '$zipcode', '$notes', '$make', '$model', '$category', '$year', '$submodel')";
-
-// if ($conn->query($sql) === TRUE) {
-//     echo "<script>alert('Quote requested successfully! Our team will contact you.'); window.history.back();</script>";
-// } else {
-//     echo "Error: " . $conn->error;
-// }
-
-// $conn->close();
-
-
-session_start(); // ✅ Start session to access user_id
-
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname = "REDACTED_DB";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+ensureSession();
 
 // Get user_id from session (if logged in)
-$user_id = isset($_SESSION['user_id']) ? $conn->real_escape_string($_SESSION['user_id']) : 'NULL';
+$user_id = getUserId();
 
-// Escape input data
-$name = $conn->real_escape_string($_POST['name']);
-$email = $conn->real_escape_string($_POST['email']);
-$contact_number = $conn->real_escape_string($_POST['contact_number']);
-$zipcode = $conn->real_escape_string($_POST['zipcode']);
-$notes = $conn->real_escape_string($_POST['notes']);
+// Collect and validate input
+$name = trim($_POST['name'] ?? '');
+$email = trim($_POST['email'] ?? '');
+$contact_number = trim($_POST['contact_number'] ?? '');
+$zipcode = trim($_POST['zipcode'] ?? '');
+$notes = trim($_POST['notes'] ?? '');
+$make = trim($_POST['make'] ?? '');
+$model = trim($_POST['model'] ?? '');
+$category = trim($_POST['category'] ?? '');
+$year = trim($_POST['year'] ?? '');
+$submodel = trim($_POST['submodel'] ?? '');
 
-// Hidden input values
-$make = isset($_POST['make']) ? $conn->real_escape_string($_POST['make']) : '';
-$model = isset($_POST['model']) ? $conn->real_escape_string($_POST['model']) : '';
-$category = isset($_POST['category']) ? $conn->real_escape_string($_POST['category']) : '';
-$year = isset($_POST['year']) ? $conn->real_escape_string($_POST['year']) : '';
-$submodel = isset($_POST['submodel']) ? $conn->real_escape_string($_POST['submodel']) : '';
-
-// Insert into 'quote_requests' table
-$sql = "INSERT INTO quote_requests (user_id, name, email, contact_number, zipcode, notes, make, model, category, year, submodel)
-        VALUES ($user_id, '$name', '$email', '$contact_number', '$zipcode', '$notes', '$make', '$model', '$category', '$year', '$submodel')";
-
-if ($conn->query($sql) === TRUE) {
-    echo "<script>alert('Quote requested successfully! Our team will contact you.'); window.history.back();</script>";
-} else {
-    echo "Error: " . $conn->error;
+// Basic validation
+if (empty($name) || empty($email) || empty($contact_number)) {
+    echo "<script>alert('Please fill in all required fields.'); window.history.back();</script>";
+    exit;
 }
 
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    echo "<script>alert('Please enter a valid email address.'); window.history.back();</script>";
+    exit;
+}
+
+// Insert using prepared statement
+$stmt = $conn->prepare("INSERT INTO quote_requests (user_id, name, email, contact_number, zipcode, notes, make, model, category, year, submodel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt->bind_param("issssssssss", $user_id, $name, $email, $contact_number, $zipcode, $notes, $make, $model, $category, $year, $submodel);
+
+if ($stmt->execute()) {
+    echo "<script>alert('Quote requested successfully! Our team will contact you.'); window.history.back();</script>";
+} else {
+    error_log("Quote request insert failed: " . $stmt->error);
+    echo "<script>alert('An error occurred. Please try again later.'); window.history.back();</script>";
+}
+
+$stmt->close();
 $conn->close();
-?> 
+?>

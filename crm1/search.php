@@ -1,18 +1,17 @@
 <?php
+/**
+ * Product Search (CRM Admin)
+ * Searches for products by ID or SKU.
+ * Requires admin authentication.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
+
+requireCrmAdminApi();
+
 header('Content-Type: text/html; charset=utf-8');
 ini_set('display_errors', 0);
 error_reporting(0);
-
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname = "REDACTED_DB";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    echo "<p style='color:red;text-align:center;'>❌ Database connection failed</p>";
-    exit;
-}
 
 // Get inputs
 $productId = isset($_POST['productId']) ? trim($_POST['productId']) : '';
@@ -55,14 +54,14 @@ $result = $stmt->get_result();
 
 if ($result && $result->num_rows > 0) {
     $row = $result->fetch_assoc();
-    $img = !empty($row['image_url']) ? $row['image_url'] : 'https://via.placeholder.com/300x200?text=No+Image';
+    $img = !empty($row['image_url']) ? htmlspecialchars($row['image_url']) : 'https://via.placeholder.com/300x200?text=No+Image';
     $price = is_numeric($row['price']) ? '$' . number_format((float)$row['price'], 2) : 'N/A';
     $category = htmlspecialchars($row['category'] ?: 'N/A');
     $productName = htmlspecialchars($row['name']);
     $skuValue = htmlspecialchars($row['sku'] ?: 'N/A');
 
     echo '<div class="product-card" style="margin:10px;padding:10px;border:1px solid #ccc;border-radius:8px;background:#fff;">';
-    echo '<img src="' . htmlspecialchars($img) . '" style="width:100%;height:150px;object-fit:cover;border-radius:4px;" alt="' . htmlspecialchars($row['name']) . '">';
+    echo '<img src="' . $img . '" style="width:100%;height:150px;object-fit:cover;border-radius:4px;" alt="' . $productName . '">';
     echo "<h3 style='font-size:16px;margin-top:10px;'>$productName</h3>";
     echo "<p><strong>SKU:</strong> $skuValue</p>";
     echo "<p><strong>Category:</strong> $category</p>";

@@ -1,20 +1,17 @@
 <?php
+/**
+ * Delete Product (Admin API)
+ * Deletes a product from the catalog.
+ * Requires admin authentication.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
+
+requireCrmAdminApi();
+
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 error_reporting(0);
-
-// Database connection
-$host = "mysql";
-$user = "root";
-$pass = "REDACTED";
-$dbname = "REDACTED_DB";
-
-$conn = new mysqli($host, $user, $pass, $dbname);
-if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'DB connection failed: ' . $conn->connect_error]);
-    exit;
-}
 
 // Get product ID
 $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -24,18 +21,19 @@ if ($id <= 0) {
     exit;
 }
 
-// Delete product from products table
+// Delete product
 $stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
 if (!$stmt) {
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Query preparation failed: ' . $conn->error]);
+    echo json_encode(['status' => 'error', 'message' => 'Query preparation failed']);
     exit;
 }
 
 $stmt->bind_param("i", $id);
 if (!$stmt->execute()) {
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Delete failed: ' . $stmt->error]);
+    error_log("Product delete failed: " . $stmt->error);
+    echo json_encode(['status' => 'error', 'message' => 'Delete failed']);
     exit;
 }
 

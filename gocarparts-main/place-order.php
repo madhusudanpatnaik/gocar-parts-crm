@@ -1,25 +1,37 @@
 <?php
+/**
+ * Place Order
+ * Creates an order record in the database.
+ * Requires user authentication — uses session user_id, not POST data.
+ */
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db_connect.php';
 
-// place-order.php
+// Require login
+requireLoginApi();
+
 header('Content-Type: application/json');
 
-// DB Connection
-$conn = new mysqli("mysql", "root", "REDACTED", "REDACTED_DB");
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+// Use session user_id — never trust client-supplied user_id
+$user_id = getUserId();
 
-$user_id         = $_POST['user_id'] ?? null;
-$email_or_mobile = $_POST['email_or_mobile'] ?? '';
-$first_name      = $_POST['first_name'] ?? '';
-$last_name       = $_POST['last_name'] ?? '';
-$company_name    = $_POST['company_name'] ?? '';
-$address         = $_POST['address'] ?? '';
-$city            = $_POST['city'] ?? '';
-$country         = $_POST['country'] ?? '';
-$postal_code     = $_POST['postal_code'] ?? '';
-$order_notes     = $_POST['order_notes'] ?? '';
+$email_or_mobile = trim($_POST['email_or_mobile'] ?? '');
+$first_name      = trim($_POST['first_name'] ?? '');
+$last_name       = trim($_POST['last_name'] ?? '');
+$company_name    = trim($_POST['company_name'] ?? '');
+$address         = trim($_POST['address'] ?? '');
+$city            = trim($_POST['city'] ?? '');
+$country         = trim($_POST['country'] ?? '');
+$postal_code     = trim($_POST['postal_code'] ?? '');
+$order_notes     = trim($_POST['order_notes'] ?? '');
 $order_time      = date("Y-m-d H:i:s");
+
+// Validate required fields
+if (empty($first_name) || empty($address) || empty($city)) {
+    http_response_code(400);
+    echo json_encode(['status' => 'error', 'message' => 'Please fill in all required fields.']);
+    exit;
+}
 
 $stmt = $conn->prepare("INSERT INTO orders (user_id, email_or_mobile, first_name, last_name, company_name, address, city, country, postal_code, order_notes, order_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 $stmt->bind_param("issssssssss", $user_id, $email_or_mobile, $first_name, $last_name, $company_name, $address, $city, $country, $postal_code, $order_notes, $order_time);
@@ -30,13 +42,13 @@ if ($stmt->execute()) {
         "order_id" => $stmt->insert_id
     ]);
 } else {
+    error_log("Order placement failed: " . $stmt->error);
     echo json_encode([
         "status" => "error",
-        "message" => $stmt->error
+        "message" => "Failed to place order. Please try again."
     ]);
 }
 
 $stmt->close();
 $conn->close();
-
 ?>
