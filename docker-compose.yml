@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  php-apache:
+    build: .
+    container_name: gocar-app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - .:/var/www/html
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: REDACTED
+      MYSQL_DATABASE: REDACTED_DB
+    depends_on:
+      - mysql
+    networks:
+      - gocar-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: gocar-db
+    environment:
+      MYSQL_ROOT_PASSWORD: REDACTED
+      MYSQL_DATABASE: REDACTED_DB
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - gocar-network
+
+volumes:
+  mysql_data:
+
+networks:
+  gocar-network:
+    driver: bridge
