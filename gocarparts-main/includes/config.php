@@ -1,23 +1,56 @@
 <?php
 /**
  * Centralized Configuration
- * Reads from environment variables with fallbacks for local development.
- * In production, set these via Docker env, .env file, or server config.
+ *
+ * Secrets are read from the environment and have NO fallback values. A missing
+ * secret throws at boot rather than silently falling back, so a misconfigured
+ * deploy fails loudly instead of connecting somewhere unintended.
+ *
+ * Set these via Docker env, a .env file, or server config. See .env.example.
  */
 
-// Database Configuration
-define('DB_HOST', getenv('MYSQL_HOST') ?: 'mysql');
-define('DB_USER', getenv('MYSQL_USER') ?: 'root');
-define('DB_PASS', getenv('MYSQL_PASSWORD') ?: 'REDACTED');
-define('DB_NAME', getenv('MYSQL_DATABASE') ?: 'REDACTED_DB');
+/**
+ * Read a required environment variable, or fail immediately.
+ *
+ * @throws RuntimeException when the variable is unset or empty.
+ */
+function env_required(string $key): string
+{
+    $value = getenv($key);
+
+    if ($value === false || $value === '') {
+        throw new RuntimeException(
+            "Missing required environment variable: {$key}. "
+            . "Copy .env.example to .env and populate it before starting the app."
+        );
+    }
+
+    return $value;
+}
+
+/**
+ * Read an optional environment variable, falling back to a non-sensitive default.
+ */
+function env_optional(string $key, string $default): string
+{
+    $value = getenv($key);
+
+    return ($value === false || $value === '') ? $default : $value;
+}
+
+// Database Configuration — credentials are required, host is not.
+define('DB_HOST', env_optional('MYSQL_HOST', 'mysql'));
+define('DB_USER', env_required('MYSQL_USER'));
+define('DB_PASS', env_required('MYSQL_PASSWORD'));
+define('DB_NAME', env_required('MYSQL_DATABASE'));
 
 // Razorpay Configuration
-define('RAZORPAY_KEY_ID', getenv('RAZORPAY_KEY_ID') ?: 'REDACTED_KEY_ID');
-define('RAZORPAY_KEY_SECRET', getenv('RAZORPAY_KEY_SECRET') ?: 'REDACTED');
+define('RAZORPAY_KEY_ID', env_required('RAZORPAY_KEY_ID'));
+define('RAZORPAY_KEY_SECRET', env_required('RAZORPAY_KEY_SECRET'));
 
 // Application Configuration
-define('APP_ENV', getenv('APP_ENV') ?: 'development');
-define('APP_BASE_URL', getenv('APP_BASE_URL') ?: 'http://localhost');
+define('APP_ENV', env_optional('APP_ENV', 'development'));
+define('APP_BASE_URL', env_optional('APP_BASE_URL', 'http://localhost'));
 define('CRM_BASE_URL', APP_BASE_URL . '/crm1');
 define('FRONTEND_BASE_URL', APP_BASE_URL . '/gocarparts-main');
 

@@ -201,7 +201,7 @@
 ### Fix 1: Migrate Hardcoded Credentials
 **Before:**
 ```php
-$conn = new mysqli("mysql", "root", "REDACTED", "REDACTED_DB");
+$conn = new mysqli("mysql", "root", "<see .env>", ""$MYSQL_DATABASE"");
 ```
 
 **After:**

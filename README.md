@@ -54,8 +54,8 @@ Your GoCar PHP application is now running in Docker containers.
 - **Host**: mysql
 - **Port**: 3306 (port 3306 on host machine via Docker)
 - **Username**: root
-- **Password**: REDACTED
-- **Database**: REDACTED_DB
+- **Password**: <see .env>
+- **Database**: "$MYSQL_DATABASE"
 
 ### Database Tables
 - `users` - User accounts (customers, admins, employees)
@@ -108,7 +108,7 @@ docker-compose logs -f
 
 **Access MySQL CLI**:
 ```bash
-docker exec -it gocar-db mysql -uroot -pREDACTED -D REDACTED_DB
+docker exec -it gocar-db mysql -u"root" -p"$MYSQL_ROOT_PASSWORD" -D "$MYSQL_DATABASE"
 ```
 
 ---
@@ -169,7 +169,7 @@ GoCar/
 All database connection strings have been updated to use Docker service names:
 - **Host**: `mysql` (Docker service)
 - **User**: `root`
-- **Password**: `REDACTED`
+- **Password**: `<see .env>`
 
 Files updated:
 - `gocarparts-main/db.php`
@@ -213,7 +213,7 @@ docker-compose up --build
 
 ### Check database connection
 ```bash
-docker exec -it gocar-db mysql -uroot -pREDACTED -D REDACTED_DB -e "SHOW TABLES;"
+docker exec -it gocar-db mysql -u"root" -p"$MYSQL_ROOT_PASSWORD" -D "$MYSQL_DATABASE" -e "SHOW TABLES;"
 ```
 
 ### View PHP error logs
