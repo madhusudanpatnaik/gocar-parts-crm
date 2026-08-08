@@ -482,10 +482,12 @@
         
 
 <?php
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname = "REDACTED_DB";
+require_once __DIR__ . '/includes/config.php';
+
+$host = DB_HOST;
+$user = DB_USER;
+$password = DB_PASS;
+$dbname = DB_NAME;
 
 $conn = new mysqli($host, $user, $password, $dbname);
 if ($conn->connect_error) {

@@ -388,10 +388,12 @@
            <div class="col-lg-8">
 <div class="horizontal-results" style="overflow-x: auto; white-space: nowrap; border: 1px solid transparent; border-radius: 8px; padding: 20px; background-color: transparent; min-height: 100%;">
 <?php
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname = "REDACTED_DB";
+require_once __DIR__ . '/includes/config.php';
+
+$host = DB_HOST;
+$user = DB_USER;
+$password = DB_PASS;
+$dbname = DB_NAME;
 
 $conn = new mysqli($host, $user, $password, $dbname);
 if ($conn->connect_error) {
@@ -875,7 +877,7 @@ function validatequotePopupForm() {
 
         <?php
 // DB Connection
-$conn = new mysqli("mysql", "root", "REDACTED", "REDACTED_DB");
+$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }

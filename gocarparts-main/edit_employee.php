@@ -1,14 +1,16 @@
 <?php
+require_once __DIR__ . '/includes/config.php';
+
 session_start();
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     header("Location: loginpage.php?error=" . urlencode("Unauthorized access."));
     exit;
 }
 
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname  = "REDACTED_DB";
+$host = DB_HOST;
+$user = DB_USER;
+$password = DB_PASS;
+$dbname  = DB_NAME;
 
 $conn = new mysqli($host, $user, $password, $dbname);
 if ($conn->connect_error) {

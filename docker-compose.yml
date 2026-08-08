@@ -11,11 +11,11 @@ services:
       - .:/var/www/html
     environment:
       MYSQL_HOST: mysql
-      MYSQL_USER: gocar_app
-      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:-REDACTED}
-      MYSQL_DATABASE: REDACTED_DB
-      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-REDACTED_KEY_ID}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-REDACTED}
+      MYSQL_USER: ${MYSQL_APP_USER:?set MYSQL_APP_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:?set MYSQL_APP_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?set MYSQL_DATABASE in .env}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:?set RAZORPAY_KEY_ID in .env}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:?set RAZORPAY_KEY_SECRET in .env}
       APP_ENV: ${APP_ENV:-development}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@gocarparts.com}
@@ -35,10 +35,10 @@ services:
     image: mysql:8.0
     container_name: gocar-db
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-REDACTED}
-      MYSQL_DATABASE: REDACTED_DB
-      MYSQL_USER: gocar_app
-      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:-REDACTED}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?set MYSQL_DATABASE in .env}
+      MYSQL_USER: ${MYSQL_APP_USER:?set MYSQL_APP_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:?set MYSQL_APP_PASSWORD in .env}
     ports:
       - "3306:3306"
     volumes:

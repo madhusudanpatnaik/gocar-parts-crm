@@ -1,5 +1,7 @@
 <?php
-$conn = new mysqli("mysql", "root", "REDACTED", "REDACTED_DB");
+require_once __DIR__ . '/includes/config.php';
+
+$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
@@ -486,10 +488,10 @@ switch ($range) {
                   <div>
   <h4 class="mb-0">
     <?php
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname = "REDACTED_DB";
+$host = DB_HOST;
+$user = DB_USER;
+$password = DB_PASS;
+$dbname = DB_NAME;
 
 $conn = new mysqli($host, $user, $password, $dbname);
 if ($conn->connect_error) {
@@ -809,10 +811,10 @@ $totalProfit = $totalRevenue * 0.6;
 </div>
 
   <?php
-$host = "mysql";
-$user = "root";
-$password = "REDACTED";
-$dbname  = "REDACTED_DB";
+$host = DB_HOST;
+$user = DB_USER;
+$password = DB_PASS;
+$dbname  = DB_NAME;
 
 $conn = new mysqli($host, $user, $password, $dbname);
 if ($conn->connect_error) {

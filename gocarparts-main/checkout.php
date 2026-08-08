@@ -1,3 +1,4 @@
+<?php require_once __DIR__ . '/includes/config.php'; ?>
 <!doctype html>
 <html lang="en">
 
@@ -570,7 +571,7 @@ document.getElementById('pay-button').onclick = function (e) {
 
         // ✅ Step 3: Configure Razorpay options
         var options = {
-            key: "REDACTED_KEY_ID",
+            key: <?= json_encode(RAZORPAY_KEY_ID) ?>,
             amount: data.amount,
             currency: "INR",
             name: "Demo Test",
